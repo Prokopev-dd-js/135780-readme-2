@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { AccountNotificationPublisher } from '../notification/notification.publisher';
 import { LoginUserDto } from './dto/login-user.dto';
 import { UserDetailRdo } from './rdo/user-detail.rdo';
@@ -40,6 +41,21 @@ export class UserService {
       name: entity.name,
     });
     return this.createDetail(entity);
+  }
+
+  public async changePassword(
+    id: string,
+    dto: ChangePasswordDto,
+  ): Promise<void> {
+    const entity = await this.repository.findById(id);
+    if (!entity) {
+      throw new NotFoundException('User not found');
+    }
+    if (!(await entity.comparePassword(dto.currentPassword))) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+    await entity.setPassword(dto.newPassword);
+    await this.repository.save(entity);
   }
 
   public async verifyCredentials(dto: LoginUserDto): Promise<UserDetailRdo> {

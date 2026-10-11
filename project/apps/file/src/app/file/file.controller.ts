@@ -1,10 +1,12 @@
 import {
   Controller,
   Get,
+  Header,
   Param,
   ParseFilePipeBuilder,
   ParseUUIDPipe,
   Post,
+  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -16,15 +18,14 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiProduces,
   ApiTags,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileEntity } from './file.entity';
 import { FileService } from './file.service';
 import type { UploadedFileData } from './uploaded-file.interface';
-
-const MAX_IMAGE_SIZE = 1024 * 1024;
-const IMAGE_FILE_TYPE = /(jpeg|png)$/;
+import { IMAGE_FILE_TYPE, IMAGE_LIMITS } from './file.constants';
 
 @ApiTags('files')
 @ApiBadRequestResponse({ description: 'Request validation failed' })
@@ -33,7 +34,11 @@ export class FileController {
   public constructor(private readonly service: FileService) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: IMAGE_LIMITS.publication + 1, files: 1 },
+    }),
+  )
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload an image' })
   @ApiBody({
@@ -48,12 +53,15 @@ export class FileController {
       },
     },
   })
-  @ApiCreatedResponse({ description: 'File metadata created' })
+  @ApiCreatedResponse({ type: FileEntity })
   public upload(
     @UploadedFile(
       new ParseFilePipeBuilder()
-        .addFileTypeValidator({ fileType: IMAGE_FILE_TYPE })
-        .addMaxSizeValidator({ maxSize: MAX_IMAGE_SIZE })
+        .addFileTypeValidator({
+          fileType: IMAGE_FILE_TYPE,
+          overrideMimeType: true,
+        })
+        .addMaxSizeValidator({ maxSize: IMAGE_LIMITS.publication + 1 })
         .build(),
     )
     file: UploadedFileData,
@@ -61,13 +69,69 @@ export class FileController {
     return this.service.save(file);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get file metadata' })
-  @ApiOkResponse({ description: 'Stored file metadata' })
+  @Post('avatar')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: IMAGE_LIMITS.avatar + 1, files: 1 },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload a JPEG or PNG avatar up to 500 KB' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiCreatedResponse({ type: FileEntity })
+  public uploadAvatar(
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: IMAGE_FILE_TYPE,
+          overrideMimeType: true,
+        })
+        .addMaxSizeValidator({ maxSize: IMAGE_LIMITS.avatar + 1 })
+        .build(),
+    )
+    file: UploadedFileData,
+  ): Promise<FileEntity> {
+    return this.service.save(file);
+  }
+
+  @Get(':id/content')
+  @Header('X-Content-Type-Options', 'nosniff')
+  @ApiOperation({ summary: 'Download the stored image' })
+  @ApiProduces('image/jpeg', 'image/png')
+  @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiNotFoundResponse({ description: 'File not found' })
-  public getById(
+  public async download(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<StreamableFile> {
+    const { metadata, buffer } = await this.service.getContent(id);
+    return new StreamableFile(buffer, {
+      type: metadata.mimeType,
+      length: buffer.length,
+      disposition: 'inline',
+    });
+  }
+
+  @Get('avatars/:id')
+  @ApiOperation({ summary: 'Get an image eligible for use as an avatar' })
+  @ApiOkResponse({ type: FileEntity })
+  @ApiNotFoundResponse({ description: 'File not found' })
+  public getAvatar(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<FileEntity> {
+    return this.service.getAvatarById(id);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get file metadata' })
+  @ApiOkResponse({ type: FileEntity })
+  @ApiNotFoundResponse({ description: 'File not found' })
+  public getById(@Param('id', ParseUUIDPipe) id: string): Promise<FileEntity> {
     return this.service.getById(id);
   }
 }

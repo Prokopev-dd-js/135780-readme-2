@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { FileController } from './file.controller';
-import { FileMemoryRepository } from './file-memory.repository';
+import { FileDiskRepository } from './file-disk.repository';
 import { FILE_REPOSITORY } from './file.repository';
 import { FileService } from './file.service';
 
@@ -8,10 +8,10 @@ import { FileService } from './file.service';
   controllers: [FileController],
   providers: [
     FileService,
-    FileMemoryRepository,
+    FileDiskRepository,
     {
       provide: FILE_REPOSITORY,
-      useExisting: FileMemoryRepository,
+      useExisting: FileDiskRepository,
     },
   ],
 })

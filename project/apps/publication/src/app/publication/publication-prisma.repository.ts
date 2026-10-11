@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Prisma,
-  Publication as PublicationModel,
-} from '@prisma/client';
+import { Prisma, Publication as PublicationModel } from '@prisma/client';
 import {
   PublicationSort,
   PublicationStatus,
@@ -28,6 +25,12 @@ export class PublicationPrismaRepository implements PublicationRepository {
     });
 
     return this.toEntity(publication);
+  }
+
+  public countPublishedByAuthor(authorId: string): Promise<number> {
+    return this.prisma.publication.count({
+      where: { authorId, status: PublicationStatus.Published },
+    });
   }
 
   public async findById(id: string): Promise<PublicationEntity | null> {

@@ -17,6 +17,7 @@ export interface PublicationFilter {
 }
 
 export interface PublicationRepository extends Repository<PublicationEntity> {
+  countPublishedByAuthor(authorId: string): Promise<number>;
   findPublished(filter: PublicationFilter): Promise<PublicationEntity[]>;
   findDrafts(authorId: string): Promise<PublicationEntity[]>;
   search(title: string, limit: number): Promise<PublicationEntity[]>;

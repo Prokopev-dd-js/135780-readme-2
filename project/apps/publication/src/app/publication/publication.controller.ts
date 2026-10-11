@@ -20,6 +20,7 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { UserId } from '../common/user-id.decorator';
@@ -73,6 +74,22 @@ export class PublicationController {
     @UserId(ParseUUIDPipe) authorId: string,
   ): Promise<PublicationEntity[]> {
     return this.service.findDrafts(authorId);
+  }
+
+  @Get('count')
+  @ApiOperation({ summary: 'Get the number of published posts by an author' })
+  @ApiQuery({ name: 'authorId', required: true, type: String, format: 'uuid' })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      required: ['publicationCount'],
+      properties: { publicationCount: { type: 'integer', minimum: 0 } },
+    },
+  })
+  public count(
+    @Query('authorId', ParseUUIDPipe) authorId: string,
+  ): Promise<{ publicationCount: number }> {
+    return this.service.countPublishedByAuthor(authorId);
   }
 
   @Get(':id')

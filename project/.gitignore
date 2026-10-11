@@ -34,6 +34,7 @@ yarn-error.log
 testem.log
 /typings
 .env
+apps/file/uploads/
 .env.*
 !.env.example
 

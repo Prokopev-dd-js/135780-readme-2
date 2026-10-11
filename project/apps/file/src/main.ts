@@ -1,10 +1,11 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app/app.module';
 
 const GLOBAL_PREFIX = 'api';
-const DEFAULT_PORT = 3000;
+const DEFAULT_PORT = 3002;
 const SWAGGER_PATH = 'swagger';
 const API_TITLE = 'Readme File Service';
 const API_DESCRIPTION = 'Avatar and publication image uploads';
@@ -30,9 +31,11 @@ async function bootstrap() {
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup(SWAGGER_PATH, app, swaggerDocument);
 
-  const port = process.env.PORT || DEFAULT_PORT;
+  const port = app.get(ConfigService).get<number>('PORT', DEFAULT_PORT);
   await app.listen(port);
-  Logger.log(`🚀 Application is running on: http://localhost:${port}/${GLOBAL_PREFIX}`);
+  Logger.log(
+    `🚀 Application is running on: http://localhost:${port}/${GLOBAL_PREFIX}`,
+  );
   Logger.log(`OpenAPI: http://localhost:${port}/${SWAGGER_PATH}`);
 }
 

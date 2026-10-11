@@ -1,0 +1,35 @@
+{
+  "name": "@project/shared-api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./package.json": "./package.json",
+    "./images": {
+      "types": "./src/lib/image.constants.ts",
+      "import": "./src/lib/image.constants.ts",
+      "default": "./src/lib/image.constants.ts"
+    },
+    "./queries": {
+      "types": "./src/lib/query.constants.ts",
+      "import": "./src/lib/query.constants.ts",
+      "default": "./src/lib/query.constants.ts"
+    }
+  },
+  "nx": {
+    "name": "shared-api"
+  },
+  "dependencies": {
+    "@project/shared-types": "*",
+    "@nestjs/swagger": "^11.4.7",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1"
+  }
+}
