@@ -6,10 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  PublicationSort,
-  PublicationStatus,
-} from '@project/shared-types';
+import { PublicationSort, PublicationStatus } from '@project/shared-types';
 import { QUERY_LIMITS } from '../common/query.constants';
 import { PublicationNotificationPublisher } from '../notification/notification.publisher';
 import { CreatePublicationDto } from './dto/create-publication.dto';
@@ -33,11 +30,21 @@ export class PublicationService {
     dto: CreatePublicationDto,
     authorId: string,
   ): Promise<PublicationEntity> {
-    const entity = await this.repository.save(new PublicationEntity(dto, authorId));
+    const entity = await this.repository.save(
+      new PublicationEntity(dto, authorId),
+    );
     if (entity.status === PublicationStatus.Published) {
       await this.publish(entity);
     }
     return entity;
+  }
+
+  public async countPublishedByAuthor(
+    authorId: string,
+  ): Promise<{ publicationCount: number }> {
+    return {
+      publicationCount: await this.repository.countPublishedByAuthor(authorId),
+    };
   }
 
   public async findPublished(
