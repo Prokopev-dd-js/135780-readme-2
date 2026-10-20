@@ -24,6 +24,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { UserId } from '../common/user-id.decorator';
+import { FeedQueryDto } from '@project/shared-api';
 import { CreatePublicationDto } from './dto/create-publication.dto';
 import { PublicationQueryDto } from './dto/publication-query.dto';
 import { SearchPublicationQueryDto } from './dto/search-publication-query.dto';
@@ -55,6 +56,27 @@ export class PublicationController {
     @Query() query: PublicationQueryDto,
   ): Promise<PublicationEntity[]> {
     return this.service.findPublished(query);
+  }
+
+  @Post('feed')
+  @HttpCode(HttpStatus.OK)
+  @ApiHeader({
+    name: 'x-user-id',
+    description: 'Authenticated user forwarded by API Gateway',
+  })
+  @ApiOperation({
+    summary:
+      'Query the current user feed using author identifiers resolved by account',
+  })
+  @ApiOkResponse({
+    description:
+      'Paginated published posts from followed authors and the current user',
+  })
+  public findFeed(
+    @Body() query: FeedQueryDto,
+    @UserId(ParseUUIDPipe) userId: string,
+  ): Promise<PublicationEntity[]> {
+    return this.service.findFeed(query, userId);
   }
 
   @Get('search')

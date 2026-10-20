@@ -10,6 +10,7 @@ export const PUBLICATION_REPOSITORY = Symbol('PUBLICATION_REPOSITORY');
 export interface PublicationFilter {
   type?: PublicationType;
   authorId?: string;
+  authorIds?: string[];
   tag?: string;
   sort: PublicationSort;
   page: number;

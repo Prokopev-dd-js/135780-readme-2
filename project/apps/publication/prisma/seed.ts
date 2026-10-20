@@ -1,3 +1,5 @@
+import { SEED_ID, SEED_CONTENT } from './seed.constants';
+import { seedAuthors } from './seed-authors';
 import {
   Prisma,
   PrismaClient,
@@ -6,26 +8,6 @@ import {
 } from '@prisma/client';
 
 const prisma = new PrismaClient();
-
-const SEED_ID = {
-  author: {
-    first: '11111111-1111-4111-8111-111111111111',
-    second: '22222222-2222-4222-8222-222222222222',
-  },
-  publication: {
-    first: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-    second: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-    third: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
-  },
-  comment: {
-    first: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-    second: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
-  },
-  like: {
-    first: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
-    second: '99999999-9999-4999-8999-999999999999',
-  },
-} as const;
 
 const publications: Prisma.PublicationUncheckedCreateInput[] = [
   {
@@ -42,7 +24,7 @@ const publications: Prisma.PublicationUncheckedCreateInput[] = [
     title: 'Как подключить Prisma к NestJS',
     announcement:
       'Короткое практическое руководство по подключению Prisma к приложению NestJS.',
-    text: 'Создаём PrismaModule, генерируем клиент и используем репозиторий для работы с PostgreSQL.',
+    text: SEED_CONTENT.text,
   },
   {
     id: SEED_ID.publication.second,
@@ -51,7 +33,7 @@ const publications: Prisma.PublicationUncheckedCreateInput[] = [
     status: PublicationStatus.published,
     createdAt: new Date('2026-01-11T11:00:00.000Z'),
     publishedAt: new Date('2026-01-11T11:00:00.000Z'),
-    tags: ['architecture'],
+    tags: [...SEED_CONTENT.tags],
     likeCount: 1,
     commentCount: 1,
     isRepost: false,
@@ -103,6 +85,7 @@ const likes: Prisma.LikeUncheckedCreateInput[] = [
 ];
 
 async function fillDatabase(): Promise<void> {
+  await seedAuthors();
   for (const publication of publications) {
     await prisma.publication.upsert({
       where: { id: publication.id },

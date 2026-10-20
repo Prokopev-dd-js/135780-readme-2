@@ -7,7 +7,16 @@ import {
   type UserRegisteredEvent,
 } from '@project/shared-types';
 import { plainToInstance } from 'class-transformer';
-import { IsEmail, IsEnum, IsISO8601, IsOptional, IsString, IsUUID, MaxLength, validate } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  validate,
+} from 'class-validator';
 import { NotificationPublicationRepository } from '../notification-publication/notification-publication.repository';
 import { SubscriberRepository } from '../subscriber/subscriber.repository';
 
@@ -22,10 +31,15 @@ class UserRegisteredMessage implements UserRegisteredEvent {
   public name!: string;
 }
 
-class PublicationPublishedMessage implements PublicationPublishedEvent {
+class PublicationWithdrawnMessage {
   @IsUUID()
   public publicationId!: string;
+}
 
+class PublicationPublishedMessage
+  extends PublicationWithdrawnMessage
+  implements PublicationPublishedEvent
+{
   @IsUUID()
   public authorId!: string;
 
@@ -80,14 +94,43 @@ export class RabbitController {
       throw new BadRequestException('Invalid notification event');
     }
     const event = plainToInstance(type, payload);
-    const errors = await validate(event, { whitelist: true, forbidNonWhitelisted: true });
+    const errors = await validate(event, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
     if (errors.length > 0) {
       throw new BadRequestException('Invalid notification event');
     }
     return event;
   }
 
-  private async process(context: RmqContext, action: () => Promise<void>): Promise<void> {
+  @EventPattern(NotificationRabbitRouting.PublicationChanged)
+  public async onPublicationChanged(
+    @Payload() payload: unknown,
+    @Ctx() context: RmqContext,
+  ): Promise<void> {
+    await this.process(context, async () => {
+      await this.publications.refresh(
+        await this.parse(PublicationPublishedMessage, payload),
+      );
+    });
+  }
+
+  @EventPattern(NotificationRabbitRouting.PublicationWithdrawn)
+  public async onPublicationWithdrawn(
+    @Payload() payload: unknown,
+    @Ctx() context: RmqContext,
+  ): Promise<void> {
+    await this.process(context, async () => {
+      const event = await this.parse(PublicationWithdrawnMessage, payload);
+      await this.publications.withdraw(event.publicationId);
+    });
+  }
+
+  private async process(
+    context: RmqContext,
+    action: () => Promise<void>,
+  ): Promise<void> {
     const channel = context.getChannelRef();
     const message = context.getMessage();
     try {
@@ -96,7 +139,12 @@ export class RabbitController {
     } catch (error) {
       const invalid = error instanceof BadRequestException;
       channel.nack(message, false, !invalid);
-      this.logger.error(invalid ? 'Invalid notification event rejected' : 'Notification event processing failed', error);
+      this.logger.error(
+        invalid
+          ? 'Invalid notification event rejected'
+          : 'Notification event processing failed',
+        error,
+      );
     }
   }
 }

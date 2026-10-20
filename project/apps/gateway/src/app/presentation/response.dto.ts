@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PublicationStatus, PublicationType } from '@project/shared-types';
+import { SubscriptionRdo } from '@project/shared-api';
 
 export class FileResponseDto {
   @ApiProperty({ format: 'uuid' }) public id!: string;
@@ -72,4 +73,8 @@ export class LikeResponseDto {
 export class NotificationResponseDto {
   @ApiProperty() public recipientCount!: number;
   @ApiProperty() public publicationCount!: number;
+}
+
+export class SubscriptionResponseDto extends SubscriptionRdo {
+  @ApiProperty({ type: UserResponseDto }) public author!: UserResponseDto;
 }

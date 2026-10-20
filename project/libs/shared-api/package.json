@@ -3,28 +3,42 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
   "types": "./src/index.ts",
   "exports": {
     ".": {
       "types": "./src/index.ts",
-      "import": "./src/index.ts",
-      "default": "./src/index.ts"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./package.json": "./package.json",
     "./images": {
       "types": "./src/lib/image.constants.ts",
-      "import": "./src/lib/image.constants.ts",
-      "default": "./src/lib/image.constants.ts"
+      "import": "./dist/lib/image.constants.js",
+      "default": "./dist/lib/image.constants.js"
     },
     "./queries": {
       "types": "./src/lib/query.constants.ts",
-      "import": "./src/lib/query.constants.ts",
-      "default": "./src/lib/query.constants.ts"
+      "import": "./dist/lib/query.constants.js",
+      "default": "./dist/lib/query.constants.js"
     }
   },
   "nx": {
-    "name": "shared-api"
+    "name": "shared-api",
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^typecheck"
+        ],
+        "outputs": [
+          "{projectRoot}/dist"
+        ],
+        "options": {
+          "command": "tsc --project libs/shared-api/tsconfig.lib.json --emitDeclarationOnly false --tsBuildInfoFile libs/shared-api/dist/tsconfig.build.tsbuildinfo"
+        }
+      }
+    }
   },
   "dependencies": {
     "@project/shared-types": "*",

@@ -12,16 +12,18 @@ export class NotificationPublicationRepository {
   ) {}
 
   public async save(event: PublicationPublishedEvent): Promise<void> {
-    await this.model.updateOne(
-      { publicationId: event.publicationId },
-      {
-        $setOnInsert: {
-          ...event,
-          publishedAt: new Date(event.publishedAt),
+    await this.model
+      .updateOne(
+        { publicationId: event.publicationId },
+        {
+          $setOnInsert: {
+            ...event,
+            publishedAt: new Date(event.publishedAt),
+          },
         },
-      },
-      { upsert: true },
-    ).exec();
+        { upsert: true },
+      )
+      .exec();
   }
 
   public async findPending(): Promise<NotificationPublicationModel[]> {
@@ -32,13 +34,30 @@ export class NotificationPublicationRepository {
       .exec();
   }
 
+  public async refresh(event: PublicationPublishedEvent): Promise<void> {
+    await this.model
+      .updateOne(
+        { publicationId: event.publicationId, notifiedAt: { $exists: false } },
+        { $set: { ...event, publishedAt: new Date(event.publishedAt) } },
+      )
+      .exec();
+  }
+
+  public async withdraw(publicationId: string): Promise<void> {
+    await this.model
+      .deleteOne({ publicationId, notifiedAt: { $exists: false } })
+      .exec();
+  }
+
   public async markNotified(publicationIds: string[]): Promise<void> {
-    await this.model.updateMany(
-      {
-        publicationId: { $in: publicationIds },
-        notifiedAt: { $exists: false },
-      },
-      { $set: { notifiedAt: new Date() } },
-    ).exec();
+    await this.model
+      .updateMany(
+        {
+          publicationId: { $in: publicationIds },
+          notifiedAt: { $exists: false },
+        },
+        { $set: { notifiedAt: new Date() } },
+      )
+      .exec();
   }
 }

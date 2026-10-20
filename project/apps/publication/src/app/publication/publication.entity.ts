@@ -37,7 +37,7 @@ export class PublicationEntity implements Publication {
     this.type = dto.type;
     this.status = dto.status ?? PublicationStatus.Published;
     this.createdAt = currentDate;
-    this.publishedAt = dto.publishedAt ? new Date(dto.publishedAt) : currentDate;
+    this.publishedAt = currentDate;
     this.tags = dto.tags ?? [];
     this.likeCount = 0;
     this.commentCount = 0;
@@ -75,8 +75,9 @@ export class PublicationEntity implements Publication {
     );
 
     entity.isRepost = true;
-    entity.originalPublicationId = original.id;
-    entity.originalAuthorId = original.authorId;
+    entity.originalPublicationId =
+      original.originalPublicationId ?? original.id;
+    entity.originalAuthorId = original.originalAuthorId ?? original.authorId;
     return entity;
   }
 

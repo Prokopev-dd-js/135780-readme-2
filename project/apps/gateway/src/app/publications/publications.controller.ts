@@ -1,3 +1,4 @@
+import { PublicationsGatewayService } from './publications.service';
 import {
   Body,
   Controller,
@@ -5,7 +6,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -26,26 +26,17 @@ import {
   SearchPublicationQueryDto,
   UpdatePublicationDto,
 } from '@project/shared-api';
-import { PublicationStatus } from '@project/shared-types';
 import { Access, RouteAccess } from '../auth/route-access.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { BackendClient, BackendService } from '../backend/backend-client';
 import { ApiBackendResponses } from '../backend/api-backend-responses.decorator';
-import {
-  PresentationService,
-  type PublicationData,
-  type PublicationView,
-} from '../presentation/presentation.service';
+import { type PublicationView } from '../presentation/presentation.service';
 import { PublicationResponseDto } from '../presentation/response.dto';
 
 @ApiTags('publications')
 @ApiBackendResponses()
 @Controller('publications')
 export class PublicationsController {
-  public constructor(
-    private readonly backend: BackendClient,
-    private readonly presentation: PresentationService,
-  ) {}
+  public constructor(private readonly service: PublicationsGatewayService) {}
 
   @Post()
   @ApiBearerAuth()
@@ -55,16 +46,7 @@ export class PublicationsController {
     @Body() dto: CreatePublicationDto,
     @CurrentUser() userId: string,
   ): Promise<PublicationView> {
-    if (dto.photoId) {
-      await this.presentation.file(dto.photoId);
-    }
-    const publication = await this.backend.request<PublicationData>(
-      BackendService.Publication,
-      'POST',
-      '/publications',
-      { body: dto, userId },
-    );
-    return (await this.presentation.publications([publication]))[0];
+    return this.service.create(dto, userId);
   }
 
   @Get()
@@ -77,13 +59,21 @@ export class PublicationsController {
   public async list(
     @Query() query: PublicationQueryDto,
   ): Promise<PublicationView[]> {
-    const publications = await this.backend.request<PublicationData[]>(
-      BackendService.Publication,
-      'GET',
-      '/publications',
-      { query },
-    );
-    return this.presentation.publications(publications);
+    return this.service.find(query);
+  }
+
+  @Get('feed')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Get paginated publications from followed authors and the current user',
+  })
+  @ApiOkResponse({ type: [PublicationResponseDto] })
+  public findFeed(
+    @Query() query: PublicationQueryDto,
+    @CurrentUser() userId: string,
+  ): Promise<PublicationView[]> {
+    return this.service.findFeed(query, userId);
   }
 
   @Get('search')
@@ -93,13 +83,7 @@ export class PublicationsController {
   public async search(
     @Query() query: SearchPublicationQueryDto,
   ): Promise<PublicationView[]> {
-    const publications = await this.backend.request<PublicationData[]>(
-      BackendService.Publication,
-      'GET',
-      '/publications/search',
-      { query },
-    );
-    return this.presentation.publications(publications);
+    return this.service.search(query);
   }
 
   @Get('drafts')
@@ -109,13 +93,7 @@ export class PublicationsController {
   public async drafts(
     @CurrentUser() userId: string,
   ): Promise<PublicationView[]> {
-    const publications = await this.backend.request<PublicationData[]>(
-      BackendService.Publication,
-      'GET',
-      '/publications/drafts',
-      { userId },
-    );
-    return this.presentation.publications(publications);
+    return this.service.findDrafts(userId);
   }
 
   @Get(':id')
@@ -126,18 +104,7 @@ export class PublicationsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() userId?: string,
   ): Promise<PublicationView> {
-    const publication = await this.backend.request<PublicationData>(
-      BackendService.Publication,
-      'GET',
-      `/publications/${id}`,
-    );
-    if (
-      publication.status === PublicationStatus.Draft &&
-      publication.authorId !== userId
-    ) {
-      throw new NotFoundException('Publication not found');
-    }
-    return (await this.presentation.publications([publication]))[0];
+    return this.service.getById(id, userId);
   }
 
   @Patch(':id')
@@ -149,16 +116,7 @@ export class PublicationsController {
     @Body() dto: UpdatePublicationDto,
     @CurrentUser() userId: string,
   ): Promise<PublicationView> {
-    if (dto.photoId) {
-      await this.presentation.file(dto.photoId);
-    }
-    const publication = await this.backend.request<PublicationData>(
-      BackendService.Publication,
-      'PATCH',
-      `/publications/${id}`,
-      { body: dto, userId },
-    );
-    return (await this.presentation.publications([publication]))[0];
+    return this.service.update(id, dto, userId);
   }
 
   @Delete(':id')
@@ -170,12 +128,7 @@ export class PublicationsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() userId: string,
   ): Promise<void> {
-    await this.backend.request(
-      BackendService.Publication,
-      'DELETE',
-      `/publications/${id}`,
-      { userId },
-    );
+    return this.service.delete(id, userId);
   }
 
   @Post(':id/repost')
@@ -186,12 +139,6 @@ export class PublicationsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() userId: string,
   ): Promise<PublicationView> {
-    const publication = await this.backend.request<PublicationData>(
-      BackendService.Publication,
-      'POST',
-      `/publications/${id}/repost`,
-      { userId },
-    );
-    return (await this.presentation.publications([publication]))[0];
+    return this.service.repost(id, userId);
   }
 }

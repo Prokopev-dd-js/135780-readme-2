@@ -26,7 +26,7 @@ export type CommentView = CommentData & { author: UserView };
 export class PresentationService {
   public constructor(private readonly backend: BackendClient) {}
 
-  public file(id: string): Promise<FileData> {
+  public getFile(id: string): Promise<FileData> {
     return this.backend.request(
       BackendService.File,
       'GET',
@@ -34,16 +34,16 @@ export class PresentationService {
     );
   }
 
-  public async user(id: string): Promise<UserView> {
+  public async getUser(id: string): Promise<UserView> {
     const user = await this.backend.request<UserData>(
       BackendService.Account,
       'GET',
       `/users/${encodeURIComponent(id)}`,
     );
-    return this.userView(user);
+    return this.createUserView(user);
   }
 
-  public async userView(user: UserData): Promise<UserView> {
+  public async createUserView(user: UserData): Promise<UserView> {
     const [count, avatar] = await Promise.all([
       this.backend.request<{ publicationCount: number }>(
         BackendService.Publication,
@@ -51,7 +51,7 @@ export class PresentationService {
         '/publications/count',
         { query: { authorId: user.id } },
       ),
-      user.avatarId ? this.file(user.avatarId) : undefined,
+      user.avatarId ? this.getFile(user.avatarId) : undefined,
     ]);
     return {
       id: user.id,
@@ -64,30 +64,30 @@ export class PresentationService {
     };
   }
 
-  public async publications(
+  public async getPublications(
     publications: PublicationData[],
   ): Promise<PublicationView[]> {
     const authors = new Map<string, Promise<UserView>>();
     const images = new Map<string, Promise<FileData>>();
-    const author = (id: string): Promise<UserView> => {
+    const getAuthor = (id: string): Promise<UserView> => {
       if (!authors.has(id)) {
-        authors.set(id, this.user(id));
+        authors.set(id, this.getUser(id));
       }
       return authors.get(id)!;
     };
-    const image = (id: string): Promise<FileData> => {
+    const getImage = (id: string): Promise<FileData> => {
       if (!images.has(id)) {
-        images.set(id, this.file(id));
+        images.set(id, this.getFile(id));
       }
       return images.get(id)!;
     };
     return Promise.all(
       publications.map(async (publication) => {
         const [user, photo, originalAuthor] = await Promise.all([
-          author(publication.authorId),
-          publication.photoId ? image(publication.photoId) : undefined,
+          getAuthor(publication.authorId),
+          publication.photoId ? getImage(publication.photoId) : undefined,
           publication.originalAuthorId
-            ? author(publication.originalAuthorId)
+            ? getAuthor(publication.originalAuthorId)
             : undefined,
         ]);
         return {
@@ -100,12 +100,12 @@ export class PresentationService {
     );
   }
 
-  public async comments(comments: CommentData[]): Promise<CommentView[]> {
+  public async getComments(comments: CommentData[]): Promise<CommentView[]> {
     const authors = new Map<string, Promise<UserView>>();
     return Promise.all(
       comments.map(async (comment) => {
         if (!authors.has(comment.authorId)) {
-          authors.set(comment.authorId, this.user(comment.authorId));
+          authors.set(comment.authorId, this.getUser(comment.authorId));
         }
         return { ...comment, author: await authors.get(comment.authorId)! };
       }),

@@ -4,14 +4,22 @@ import {
   type ValidationArguments,
   type ValidationOptions,
 } from 'class-validator';
+import { PUBLICATION_LIMITS } from './publication.constants.js';
 
-const TEXT_LENGTH = {
-  [PublicationType.Text]: { minimum: 100, maximum: 1024 },
-  [PublicationType.Quote]: { minimum: 20, maximum: 300 },
-} as const;
-
-interface PublicationTextContainer {
-  type: PublicationType;
+function getLimits(type?: PublicationType): {
+  minimum: number;
+  maximum: number;
+} {
+  if (type === PublicationType.Text) {
+    return PUBLICATION_LIMITS.text;
+  }
+  if (type === PublicationType.Quote) {
+    return PUBLICATION_LIMITS.quote;
+  }
+  return {
+    minimum: PUBLICATION_LIMITS.quote.minimum,
+    maximum: PUBLICATION_LIMITS.text.maximum,
+  };
 }
 
 export function IsPublicationText(
@@ -22,32 +30,20 @@ export function IsPublicationText(
       name: 'isPublicationText',
       validator: {
         validate(value: unknown, args: ValidationArguments): boolean {
-          if (typeof value !== 'string') {
-            return false;
-          }
-
-          const { type } = args.object as PublicationTextContainer;
-          const limits =
-            type === PublicationType.Text || type === PublicationType.Quote
-              ? TEXT_LENGTH[type]
-              : undefined;
-
-          return Boolean(
-            limits &&
-              value.length >= limits.minimum &&
-              value.length <= limits.maximum,
+          const limits = getLimits(
+            (args.object as { type?: PublicationType }).type,
+          );
+          return (
+            typeof value === 'string' &&
+            value.length >= limits.minimum &&
+            value.length <= limits.maximum
           );
         },
         defaultMessage(args: ValidationArguments): string {
-          const { type } = args.object as PublicationTextContainer;
-          const limits =
-            type === PublicationType.Text || type === PublicationType.Quote
-              ? TEXT_LENGTH[type]
-              : undefined;
-
-          return limits
-            ? `text must be between ${limits.minimum} and ${limits.maximum} characters`
-            : 'text is not allowed for this publication type';
+          const limits = getLimits(
+            (args.object as { type?: PublicationType }).type,
+          );
+          return `text must be between ${limits.minimum} and ${limits.maximum} characters`;
         },
       },
     },

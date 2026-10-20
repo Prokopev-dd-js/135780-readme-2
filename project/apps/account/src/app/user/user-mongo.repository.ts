@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserEntity } from './user.entity';
@@ -13,25 +13,32 @@ export class UserMongoRepository implements UserRepository {
   ) {}
 
   public async save(entity: UserEntity): Promise<UserEntity> {
-    await this.userModel
-      .findByIdAndUpdate(
-        entity.id,
-        {
-          email: entity.email,
-          name: entity.name,
-          avatarId: entity.avatarId,
-          passwordHash: entity.getPasswordHash(),
-          publicationCount: entity.publicationCount,
-          subscriberCount: entity.subscriberCount,
-          createdAt: entity.createdAt,
-        },
-        {
-          upsert: true,
-          runValidators: true,
-          setDefaultsOnInsert: true,
-        },
-      )
-      .exec();
+    try {
+      await this.userModel
+        .findByIdAndUpdate(
+          entity.id,
+          {
+            email: entity.email,
+            name: entity.name,
+            avatarId: entity.avatarId,
+            passwordHash: entity.getPasswordHash(),
+            publicationCount: entity.publicationCount,
+            subscriberCount: entity.subscriberCount,
+            createdAt: entity.createdAt,
+          },
+          {
+            upsert: true,
+            runValidators: true,
+            setDefaultsOnInsert: true,
+          },
+        )
+        .exec();
+    } catch (error) {
+      if ((error as { code?: number }).code === 11000) {
+        throw new ConflictException('User with this email already exists');
+      }
+      throw error;
+    }
 
     return entity;
   }

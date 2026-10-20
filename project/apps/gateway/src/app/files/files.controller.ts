@@ -1,3 +1,4 @@
+import { FilesGatewayService, type ImageUpload } from './files.service';
 import {
   Controller,
   Get,
@@ -25,12 +26,8 @@ import {
 import { IMAGE_LIMITS } from '@project/shared-api/images';
 import { Access, RouteAccess } from '../auth/route-access.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { BackendClient, BackendService } from '../backend/backend-client';
 import { ApiBackendResponses } from '../backend/api-backend-responses.decorator';
-import {
-  PresentationService,
-  type FileData,
-} from '../presentation/presentation.service';
+import { type FileData } from '../presentation/presentation.service';
 import { FileResponseDto } from '../presentation/response.dto';
 
 const UPLOAD_SCHEMA = {
@@ -39,21 +36,12 @@ const UPLOAD_SCHEMA = {
   properties: { file: { type: 'string' as const, format: 'binary' } },
 };
 
-interface ImageUpload {
-  originalname: string;
-  mimetype: string;
-  buffer: Buffer;
-}
-
 @ApiTags('files')
 @ApiBackendResponses()
 @ApiPayloadTooLargeResponse({ description: 'Image exceeds the allowed size' })
 @Controller('files')
 export class FilesController {
-  public constructor(
-    private readonly backend: BackendClient,
-    private readonly presentation: PresentationService,
-  ) {}
+  public constructor(private readonly service: FilesGatewayService) {}
 
   @Post()
   @ApiBearerAuth()
@@ -72,7 +60,7 @@ export class FilesController {
     @UploadedFile(new ParseFilePipe()) file: ImageUpload,
     @CurrentUser() userId: string,
   ): Promise<FileData> {
-    return this.forward(file, '/files', userId);
+    return this.service.upload(file, userId);
   }
 
   @Post('avatar')
@@ -91,7 +79,7 @@ export class FilesController {
   public avatar(
     @UploadedFile(new ParseFilePipe()) file: ImageUpload,
   ): Promise<FileData> {
-    return this.forward(file, '/files/avatar');
+    return this.service.uploadAvatar(file);
   }
 
   @Get(':id/content')
@@ -103,20 +91,7 @@ export class FilesController {
   public async download(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<StreamableFile> {
-    const [metadata, buffer] = await Promise.all([
-      this.presentation.file(id),
-      this.backend.request<Buffer>(
-        BackendService.File,
-        'GET',
-        `/files/${id}/content`,
-        { responseType: 'arraybuffer' },
-      ),
-    ]);
-    return new StreamableFile(buffer, {
-      type: metadata.mimeType,
-      length: buffer.length,
-      disposition: 'inline',
-    });
+    return this.service.download(id);
   }
 
   @Get(':id')
@@ -124,23 +99,6 @@ export class FilesController {
   @ApiOperation({ summary: 'Get image metadata and download URL' })
   @ApiOkResponse({ type: FileResponseDto })
   public metadata(@Param('id', ParseUUIDPipe) id: string): Promise<FileData> {
-    return this.presentation.file(id);
-  }
-
-  private forward(
-    file: ImageUpload,
-    path: string,
-    userId?: string,
-  ): Promise<FileData> {
-    const form = new FormData();
-    form.append(
-      'file',
-      new Blob([new Uint8Array(file.buffer)], { type: file.mimetype }),
-      file.originalname,
-    );
-    return this.backend.request(BackendService.File, 'POST', path, {
-      body: form,
-      userId,
-    });
+    return this.service.getMetadata(id);
   }
 }
