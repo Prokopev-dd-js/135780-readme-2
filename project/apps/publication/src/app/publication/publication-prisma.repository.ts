@@ -21,7 +21,7 @@ export class PublicationPrismaRepository implements PublicationRepository {
     const publication = await this.prisma.publication.upsert({
       where: { id: entity.id },
       create: data,
-      update: data,
+      update: { ...data, likeCount: undefined, commentCount: undefined },
     });
 
     return this.toEntity(publication);
@@ -48,7 +48,7 @@ export class PublicationPrismaRepository implements PublicationRepository {
       where: {
         status: PublicationStatus.Published,
         type: filter.type,
-        authorId: filter.authorId,
+        authorId: filter.authorIds ? { in: filter.authorIds } : filter.authorId,
         tags: filter.tag ? { has: filter.tag } : undefined,
       },
       orderBy: this.createOrderBy(filter.sort),
@@ -62,7 +62,7 @@ export class PublicationPrismaRepository implements PublicationRepository {
   public async findDrafts(authorId: string): Promise<PublicationEntity[]> {
     const publications = await this.prisma.publication.findMany({
       where: { authorId, status: PublicationStatus.Draft },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     });
 
     return publications.map((publication) => this.toEntity(publication));
@@ -80,7 +80,7 @@ export class PublicationPrismaRepository implements PublicationRepository {
           title: { contains: word, mode: 'insensitive' },
         })),
       },
-      orderBy: { publishedAt: 'desc' },
+      orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
       take: limit,
     });
 
@@ -110,14 +110,18 @@ export class PublicationPrismaRepository implements PublicationRepository {
     sort: PublicationFilter['sort'],
   ): Prisma.PublicationOrderByWithRelationInput[] {
     if (sort === PublicationSort.Likes) {
-      return [{ likeCount: 'desc' }, { publishedAt: 'desc' }];
+      return [{ likeCount: 'desc' }, { publishedAt: 'desc' }, { id: 'desc' }];
     }
 
     if (sort === PublicationSort.Comments) {
-      return [{ commentCount: 'desc' }, { publishedAt: 'desc' }];
+      return [
+        { commentCount: 'desc' },
+        { publishedAt: 'desc' },
+        { id: 'desc' },
+      ];
     }
 
-    return [{ publishedAt: 'desc' }];
+    return [{ publishedAt: 'desc' }, { id: 'desc' }];
   }
 
   private toPrismaData(

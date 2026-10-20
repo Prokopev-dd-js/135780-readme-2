@@ -10,16 +10,14 @@ export class CommentPrismaRepository implements CommentRepository {
 
   public async save(entity: CommentEntity): Promise<CommentEntity> {
     const comment = await this.prisma.$transaction(async (transaction) => {
-      const savedComment = await transaction.comment.upsert({
-        where: { id: entity.id },
-        create: {
+      const savedComment = await transaction.comment.create({
+        data: {
           id: entity.id,
           publicationId: entity.publicationId,
           authorId: entity.authorId,
           text: entity.text,
           createdAt: entity.createdAt,
         },
-        update: { text: entity.text },
       });
 
       await transaction.publication.update({
@@ -45,7 +43,7 @@ export class CommentPrismaRepository implements CommentRepository {
   ): Promise<CommentEntity[]> {
     const comments = await this.prisma.comment.findMany({
       where: { publicationId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: offset,
       take: limit,
     });

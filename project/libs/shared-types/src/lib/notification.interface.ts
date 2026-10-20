@@ -3,6 +3,8 @@ import { PublicationType } from './publication.interface.js';
 export const NotificationRabbitRouting = {
   UserRegistered: 'user.registered',
   PublicationPublished: 'publication.published',
+  PublicationChanged: 'publication.changed',
+  PublicationWithdrawn: 'publication.withdrawn',
 } as const;
 
 export interface UserRegisteredEvent {
@@ -17,4 +19,8 @@ export interface PublicationPublishedEvent {
   type: PublicationType;
   title?: string;
   publishedAt: string;
+}
+
+export interface PublicationWithdrawnEvent {
+  publicationId: string;
 }

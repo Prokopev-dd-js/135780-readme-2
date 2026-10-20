@@ -38,11 +38,16 @@ export class PublicationQueryDto {
   @IsEnum(PublicationSort)
   public sort?: PublicationSort;
 
-  @ApiPropertyOptional({ minimum: 1, default: QUERY_LIMITS.defaultPage })
+  @ApiPropertyOptional({
+    minimum: 1,
+    maximum: QUERY_LIMITS.maximumPage,
+    default: QUERY_LIMITS.defaultPage,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(QUERY_LIMITS.maximumPage)
   public page?: number;
 
   @ApiPropertyOptional({

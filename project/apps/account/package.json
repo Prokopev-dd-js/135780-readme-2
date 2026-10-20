@@ -55,6 +55,16 @@
         ],
         "executor": "nx:noop"
       },
+      "start": {
+        "executor": "nx:run-commands",
+        "continuous": true,
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "command": "node apps/account/dist/main.js"
+        }
+      },
       "serve": {
         "continuous": true,
         "executor": "@nx/js:node",

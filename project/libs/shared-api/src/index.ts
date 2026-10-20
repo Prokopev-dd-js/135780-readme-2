@@ -12,3 +12,5 @@ export * from './lib/create-comment.dto.js';
 export * from './lib/comment-query.dto.js';
 export * from './lib/query.constants.js';
 export * from './lib/image.constants.js';
+export * from './lib/feed-query.dto.js';
+export * from './lib/subscription.rdo.js';

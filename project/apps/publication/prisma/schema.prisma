@@ -42,14 +42,13 @@ model Publication {
   photoId               String?           @map("photo_id")
   linkUrl               String?           @map("link_url")
   description           String?           @db.VarChar(300)
-  originalPublication   Publication?      @relation("PublicationReposts", fields: [originalPublicationId], references: [id], onDelete: SetNull)
-  reposts               Publication[]     @relation("PublicationReposts")
   comments              Comment[]
   likes                 Like[]
 
   @@index([authorId])
   @@index([status, publishedAt])
   @@index([originalPublicationId])
+  @@unique([authorId, originalPublicationId])
   @@map("publications")
 }
 

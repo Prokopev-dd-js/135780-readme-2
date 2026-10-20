@@ -1,22 +1,18 @@
 import { Module } from '@nestjs/common';
-import { BackendClient } from './backend/backend-client';
-import { PresentationService } from './presentation/presentation.service';
-import { UsersController } from './users/users.controller';
-import { PublicationsController } from './publications/publications.controller';
-import { CommentsController } from './publications/comments.controller';
-import { LikesController } from './publications/likes.controller';
-import { FilesController } from './files/files.controller';
-import { NotificationsController } from './notifications/notifications.controller';
-
+import { BackendModule } from './backend/backend.module';
+import { UsersGatewayModule } from './users/users.module';
+import { PublicationsGatewayModule } from './publications/publications.module';
+import { FilesGatewayModule } from './files/files.module';
+import { SubscriptionsGatewayModule } from './subscriptions/subscriptions.module';
+import { NotificationsGatewayModule } from './notifications/notifications.module';
 @Module({
-  controllers: [
-    UsersController,
-    PublicationsController,
-    CommentsController,
-    LikesController,
-    FilesController,
-    NotificationsController,
+  imports: [
+    BackendModule,
+    UsersGatewayModule,
+    PublicationsGatewayModule,
+    FilesGatewayModule,
+    SubscriptionsGatewayModule,
+    NotificationsGatewayModule,
   ],
-  providers: [BackendClient, PresentationService],
 })
 export class GatewayModule {}

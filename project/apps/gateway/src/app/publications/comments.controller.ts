@@ -1,3 +1,4 @@
+import { CommentsGatewayService } from './comments.service';
 import {
   Body,
   Controller,
@@ -21,23 +22,15 @@ import {
 import { CommentQueryDto, CreateCommentDto } from '@project/shared-api';
 import { Access, RouteAccess } from '../auth/route-access.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { BackendClient, BackendService } from '../backend/backend-client';
 import { ApiBackendResponses } from '../backend/api-backend-responses.decorator';
-import {
-  PresentationService,
-  type CommentData,
-  type CommentView,
-} from '../presentation/presentation.service';
+import { type CommentView } from '../presentation/presentation.service';
 import { CommentResponseDto } from '../presentation/response.dto';
 
 @ApiTags('comments')
 @ApiBackendResponses()
 @Controller('publications/:publicationId/comments')
 export class CommentsController {
-  public constructor(
-    private readonly backend: BackendClient,
-    private readonly presentation: PresentationService,
-  ) {}
+  public constructor(private readonly service: CommentsGatewayService) {}
 
   @Get()
   @Access(RouteAccess.Public)
@@ -47,13 +40,7 @@ export class CommentsController {
     @Param('publicationId', ParseUUIDPipe) publicationId: string,
     @Query() query: CommentQueryDto,
   ): Promise<CommentView[]> {
-    const comments = await this.backend.request<CommentData[]>(
-      BackendService.Publication,
-      'GET',
-      `/publications/${publicationId}/comments`,
-      { query },
-    );
-    return this.presentation.comments(comments);
+    return this.service.find(publicationId, query);
   }
 
   @Post()
@@ -65,13 +52,7 @@ export class CommentsController {
     @CurrentUser() userId: string,
     @Body() dto: CreateCommentDto,
   ): Promise<CommentView> {
-    const comment = await this.backend.request<CommentData>(
-      BackendService.Publication,
-      'POST',
-      `/publications/${publicationId}/comments`,
-      { body: dto, userId },
-    );
-    return (await this.presentation.comments([comment]))[0];
+    return this.service.create(publicationId, userId, dto);
   }
 
   @Delete(':id')
@@ -84,11 +65,6 @@ export class CommentsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() userId: string,
   ): Promise<void> {
-    await this.backend.request(
-      BackendService.Publication,
-      'DELETE',
-      `/publications/${publicationId}/comments/${id}`,
-      { userId },
-    );
+    return this.service.delete(publicationId, id, userId);
   }
 }

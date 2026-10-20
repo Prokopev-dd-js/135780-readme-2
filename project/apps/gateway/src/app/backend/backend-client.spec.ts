@@ -54,8 +54,8 @@ test('gateway joins publications with safe author and image information and shar
     const posts = [
       { id: 'post1', authorId, photoId: 'photo' },
       { id: 'post2', authorId },
-    ] as Parameters<PresentationService['publications']>[0];
-    const result = await service.publications(posts);
+    ] as Parameters<PresentationService['getPublications']>[0];
+    const result = await service.getPublications(posts);
     assert.equal(result[0].author.name, 'Reader');
     assert.equal(result[0].author.publicationCount, 2);
     assert.equal('passwordHash' in result[0].author, false);

@@ -21,4 +21,22 @@ export class PublicationNotificationPublisher {
       this.client.emit(NotificationRabbitRouting.PublicationPublished, event),
     );
   }
+
+  public async publishPublicationChanged(
+    event: PublicationPublishedEvent,
+  ): Promise<void> {
+    await lastValueFrom(
+      this.client.emit(NotificationRabbitRouting.PublicationChanged, event),
+    );
+  }
+
+  public async publishPublicationWithdrawn(
+    publicationId: string,
+  ): Promise<void> {
+    await lastValueFrom(
+      this.client.emit(NotificationRabbitRouting.PublicationWithdrawn, {
+        publicationId,
+      }),
+    );
+  }
 }

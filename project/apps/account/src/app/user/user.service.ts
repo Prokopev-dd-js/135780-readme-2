@@ -12,6 +12,7 @@ import { LoginUserDto } from './dto/login-user.dto';
 import { UserDetailRdo } from './rdo/user-detail.rdo';
 import { UserEntity } from './user.entity';
 import { USER_REPOSITORY, type UserRepository } from './user.repository';
+import { SubscriptionRepository } from '../subscription/subscription.repository';
 
 @Injectable()
 export class UserService {
@@ -19,6 +20,7 @@ export class UserService {
     @Inject(USER_REPOSITORY)
     private readonly repository: UserRepository,
     private readonly notificationPublisher: AccountNotificationPublisher,
+    private readonly subscriptions: SubscriptionRepository,
   ) {}
 
   public async register(dto: CreateUserDto): Promise<UserDetailRdo> {
@@ -75,10 +77,16 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    return this.createDetail(entity);
+    return this.createDetail(
+      entity,
+      await this.subscriptions.countByAuthor(id),
+    );
   }
 
-  private createDetail(entity: UserEntity): UserDetailRdo {
+  private createDetail(
+    entity: UserEntity,
+    subscriberCount = entity.subscriberCount,
+  ): UserDetailRdo {
     return {
       id: entity.id,
       email: entity.email,
@@ -86,7 +94,7 @@ export class UserService {
       avatarId: entity.avatarId,
       createdAt: entity.createdAt,
       publicationCount: entity.publicationCount,
-      subscriberCount: entity.subscriberCount,
+      subscriberCount,
     };
   }
 }

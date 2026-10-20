@@ -4,6 +4,7 @@ import { UserService } from './user.service';
 import { AccountNotificationPublisher } from '../notification/notification.publisher';
 import type { UserRepository } from './user.repository';
 import { UserEntity } from './user.entity';
+import type { SubscriptionRepository } from '../subscription/subscription.repository';
 import { UnauthorizedException } from '@nestjs/common';
 
 test('registration publishes a user event after saving', async () => {
@@ -24,6 +25,7 @@ test('registration publishes a user event after saving', async () => {
   const service = new UserService(
     repository,
     publisher as unknown as AccountNotificationPublisher,
+    {} as SubscriptionRepository,
   );
 
   await service.register({
@@ -51,6 +53,7 @@ test('changing a password verifies the old password and persists only a hash', a
   const service = new UserService(
     repository,
     {} as AccountNotificationPublisher,
+    {} as SubscriptionRepository,
   );
   await service.changePassword(user.id, {
     currentPassword: 'secret12',
@@ -73,6 +76,7 @@ test('an incorrect current password leaves the stored password unchanged', async
   const service = new UserService(
     repository,
     {} as AccountNotificationPublisher,
+    {} as SubscriptionRepository,
   );
   await assert.rejects(
     service.changePassword(user.id, {
