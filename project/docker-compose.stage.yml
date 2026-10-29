@@ -1,0 +1,13 @@
+name: readme-stage
+
+include:
+  - path: ./apps/notification/docker-compose.stage.yml
+    env_file: .env.stage
+  - path: ./apps/account/docker-compose.stage.yml
+    env_file: .env.stage
+  - path: ./apps/publication/docker-compose.stage.yml
+    env_file: .env.stage
+  - path: ./apps/file/docker-compose.stage.yml
+    env_file: .env.stage
+  - path: ./apps/gateway/docker-compose.stage.yml
+    env_file: .env.stage

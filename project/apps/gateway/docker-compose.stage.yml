@@ -1,0 +1,28 @@
+services:
+  gateway:
+    image: readme/gateway:stage
+    build:
+      context: ../..
+      dockerfile: apps/gateway/dockerfile
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-4000}:3004"
+    environment:
+      PORT: 3004
+      ACCOUNT_URL: http://account:3000/api
+      PUBLICATION_URL: http://publication:3001/api
+      FILE_URL: http://file:3002/api
+      NOTIFICATION_URL: http://notification:3003/api
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in .env.stage}
+      HTTP_TIMEOUT: 10000
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+    depends_on:
+      account:
+        condition: service_healthy
+      publication:
+        condition: service_healthy
+      file:
+        condition: service_healthy
+      notification:
+        condition: service_healthy

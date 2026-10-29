@@ -1,0 +1,39 @@
+FROM node:26-alpine AS base
+WORKDIR /app
+RUN apk add --no-cache openssl
+
+FROM base AS manifests
+COPY package.json package-lock.json ./
+COPY apps/account/package.json ./apps/account/package.json
+COPY apps/publication/package.json ./apps/publication/package.json
+COPY apps/file/package.json ./apps/file/package.json
+COPY apps/notification/package.json ./apps/notification/package.json
+COPY apps/gateway/package.json ./apps/gateway/package.json
+COPY libs/shared-api/package.json ./libs/shared-api/package.json
+COPY libs/shared-types/package.json ./libs/shared-types/package.json
+FROM manifests AS dependencies
+RUN --mount=type=cache,target=/root/.npm npm ci
+
+FROM manifests AS production-dependencies
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+
+FROM dependencies AS build
+ENV NX_DAEMON=false NX_ISOLATE_PLUGINS=false NX_TUI=false CI=true
+COPY . .
+RUN npx prisma generate --schema=apps/publication/prisma/schema.prisma
+RUN npx nx build @project/gateway
+
+FROM base AS runtime
+ENV NODE_ENV=production PORT=3004
+COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/package.json ./package.json
+COPY --from=build --chown=node:node /app/libs/shared-api/package.json ./libs/shared-api/package.json
+COPY --from=build --chown=node:node /app/libs/shared-api/dist ./libs/shared-api/dist
+COPY --from=build --chown=node:node /app/libs/shared-types/package.json ./libs/shared-types/package.json
+COPY --from=build --chown=node:node /app/libs/shared-types/dist ./libs/shared-types/dist
+COPY --from=build --chown=node:node /app/apps/gateway/package.json ./apps/gateway/package.json
+COPY --from=build --chown=node:node /app/apps/gateway/dist ./apps/gateway/dist
+USER node
+EXPOSE 3004
+HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=5 CMD ["node", "-e", "fetch('http://127.0.0.1:' + process.env.PORT + '/swagger-json').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+CMD ["node", "apps/gateway/dist/main.js"]
