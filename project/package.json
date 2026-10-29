@@ -11,7 +11,10 @@
     "test": "nx build shared-api && tsx --tsconfig tsconfig.base.json tools/test.ts",
     "test:e2e": "tsx --tsconfig tsconfig.base.json tools/verify-api.ts",
     "test:e2e:all": "tsx --tsconfig tsconfig.base.json tools/verify-api.ts --optional",
-    "infra:up": "docker compose --env-file apps/account/.env -f apps/account/docker-compose.yml up -d && docker compose --env-file apps/publication/.env -f apps/publication/docker-compose.yml up -d && docker compose --env-file apps/notification/.env -f apps/notification/docker-compose.yml up -d"
+    "infra:up": "docker compose --env-file apps/account/.env -f apps/account/docker-compose.dev.yml up -d && docker compose --env-file apps/publication/.env -f apps/publication/docker-compose.dev.yml up -d && docker compose --env-file apps/notification/.env -f apps/notification/docker-compose.dev.yml up -d",
+    "stage:build": "docker compose --env-file .env.stage -f docker-compose.stage.yml build",
+    "stage:up": "docker compose --env-file .env.stage -f docker-compose.stage.yml up -d --wait",
+    "stage:down": "docker compose --env-file .env.stage -f docker-compose.stage.yml down"
   },
   "private": true,
   "dependencies": {

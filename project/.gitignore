@@ -37,6 +37,7 @@ testem.log
 apps/file/uploads/
 .env.*
 !.env.example
+!.env.stage.example
 
 # System Files
 .DS_Store

@@ -1,0 +1,16 @@
+services:
+  file:
+    image: readme/file:stage
+    build:
+      context: ../..
+      dockerfile: apps/file/dockerfile
+    init: true
+    restart: unless-stopped
+    environment:
+      PORT: 3002
+      UPLOAD_DIRECTORY: /app/uploads
+    volumes:
+      - file-data:/app/uploads
+
+volumes:
+  file-data:

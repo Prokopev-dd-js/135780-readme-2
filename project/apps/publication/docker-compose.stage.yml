@@ -1,0 +1,51 @@
+services:
+  publication:
+    image: readme/publication:stage
+    build:
+      context: ../..
+      dockerfile: apps/publication/dockerfile
+    init: true
+    restart: unless-stopped
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-readme}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.stage}@publication-postgres:5432/${POSTGRES_DB:-readme-publication}?schema=public
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-readme}:${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env.stage}@notification-rabbitmq:5672
+      RABBITMQ_QUEUE: ${RABBITMQ_QUEUE:-readme.notifications}
+    depends_on:
+      publication-migrate:
+        condition: service_completed_successfully
+      notification-rabbitmq:
+        condition: service_healthy
+
+  publication-migrate:
+    image: readme/publication-migrate:stage
+    build:
+      context: ../..
+      dockerfile: apps/publication/dockerfile
+      target: migration
+    init: true
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-readme}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.stage}@publication-postgres:5432/${POSTGRES_DB:-readme-publication}?schema=public
+    depends_on:
+      publication-postgres:
+        condition: service_healthy
+
+  publication-postgres:
+    image: postgres:14.24-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-readme-publication}
+      POSTGRES_USER: ${POSTGRES_USER:-readme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.stage}
+    volumes:
+      - publication-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  publication-postgres-data:
